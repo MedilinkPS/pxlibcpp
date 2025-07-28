@@ -1,8 +1,8 @@
 #ifndef __PARADOX_H__
 #define __PARADOX_H__
 
-#define PX_USE_RECODE @PX_HAVE_RECODE@
-#define PX_USE_ICONV @PX_HAVE_ICONV@
+#define PX_USE_RECODE 0
+#define PX_USE_ICONV 0
 
 #include <stdio.h>
 #if PX_USE_RECODE
@@ -11,14 +11,10 @@
 #if PX_USE_ICONV
 #include <iconv.h>
 #endif
+#include <string>
 #endif
 
-#ifdef WIN32
-
-#if defined(_MSC_VER)
-#include <BaseTsd.h>
-typedef SSIZE_T ssize_t;
-#endif
+#ifdef _WIN32
 
 #define PXLIB_CALL __cdecl
 
@@ -31,7 +27,7 @@ typedef SSIZE_T ssize_t;
 
 #endif  /* !PXLIB_DLL */
 
-#endif /* !WIN32 */
+#endif /* !_WIN32 */
 
 #ifndef PXLIB_CALL
 #define PXLIB_CALL
@@ -88,6 +84,11 @@ typedef SSIZE_T ssize_t;
 /* File modes */
 #define pxfFileRead   0x1
 #define pxfFileWrite  0x2
+
+#define pxDateTimeFormat "Y-m-dTH:i:s.000Z"
+#define pxDateOnlyFormat "Y-m-dT00:00:00.000Z"
+//#define pxTimeOnlyFormat "0001-01-01TH:i:s.000Z"
+#define pxTimeOnlyFormat "H:i:s"
 
 struct px_field {
 	char *px_fname;
@@ -160,10 +161,10 @@ struct px_stream {
 		GsfOutput *gsfout;
 #endif
 	} s;
-	ssize_t (*read)(pxdoc_t *p, pxstream_t *stream, size_t numbytes, void *buffer);
+	size_t (*read)(pxdoc_t *p, pxstream_t *stream, size_t numbytes, void *buffer);
 	int (*seek)(pxdoc_t *p, pxstream_t *stream, long offset, int whence);
 	long (*tell)(pxdoc_t *p, pxstream_t *stream);
-	ssize_t (*write)(pxdoc_t *p, pxstream_t *stream, size_t numbytes, void *buffer);
+	size_t (*write)(pxdoc_t *p, pxstream_t *stream, size_t numbytes, void *buffer);
 };
 
 struct px_doc {
@@ -208,10 +209,10 @@ struct px_doc {
 	void  (*free)(pxdoc_t *p, void *mem);
 
 	/* input stream functions */
-	ssize_t (*read)(pxdoc_t *p, pxstream_t *stream, size_t numbytes, void *buffer);
+	size_t (*read)(pxdoc_t *p, pxstream_t *stream, size_t numbytes, void *buffer);
 	int (*seek)(pxdoc_t *p, pxstream_t *stream, long offset, int whence);
 	long (*tell)(pxdoc_t *p, pxstream_t *stream);
-	ssize_t (*write)(pxdoc_t *p, pxstream_t *stream, size_t numbytes, void *buffer);
+	size_t (*write)(pxdoc_t *p, pxstream_t *stream, size_t numbytes, void *buffer);
 
 	char *targetencoding;
 	char *inputencoding;
@@ -258,10 +259,10 @@ struct px_blob {
 	int subblockfree;
 	int subblockblobcount;
 	/* input stream functions */
-	ssize_t (*read)(pxblob_t *p, pxstream_t *stream, size_t numbytes, void *buffer);
+	size_t (*read)(pxblob_t *p, pxstream_t *stream, size_t numbytes, void *buffer);
 	int (*seek)(pxblob_t *p, pxstream_t *stream, long offset, int whence);
 	long (*tell)(pxblob_t *p, pxstream_t *stream);
-	ssize_t (*write)(pxblob_t *p, pxstream_t *stream, size_t numbytes, void *buffer);
+	size_t (*write)(pxblob_t *p, pxstream_t *stream, size_t numbytes, void *buffer);
 	/* Cache for the last read block */
 	pxblockcache_t blockcache;
 	/* Index of all blocks in the blob file */
@@ -330,16 +331,16 @@ PX_shutdown(void);
 
 PXLIB_API pxdoc_t* PXLIB_CALL
 PX_new3(void  (*errorhandler)(pxdoc_t *p, int type, const char *msg, void *data),
-        void* (*allocproc)(pxdoc_t *p, size_t size, const char *caller),
-        void* (*reallocproc)(pxdoc_t *p, void *mem, size_t size, const char *caller),
-        void  (*freeproc)(pxdoc_t *p, void *mem),
+		void* (*allocproc)(pxdoc_t *p, size_t size, const char *caller),
+		void* (*reallocproc)(pxdoc_t *p, void *mem, size_t size, const char *caller),
+		void  (*freeproc)(pxdoc_t *p, void *mem),
 		void* errorhandler_user_data);
 
 PXLIB_API pxdoc_t* PXLIB_CALL
 PX_new2(void  (*errorhandler)(pxdoc_t *p, int type, const char *msg, void *data),
-        void* (*allocproc)(pxdoc_t *p, size_t size, const char *caller),
-        void* (*reallocproc)(pxdoc_t *p, void *mem, size_t size, const char *caller),
-        void  (*freeproc)(pxdoc_t *p, void *mem));
+		void* (*allocproc)(pxdoc_t *p, size_t size, const char *caller),
+		void* (*reallocproc)(pxdoc_t *p, void *mem, size_t size, const char *caller),
+		void  (*freeproc)(pxdoc_t *p, void *mem));
 
 PXLIB_API pxdoc_t* PXLIB_CALL
 PX_new(void);
@@ -545,17 +546,57 @@ PX_make_date(pxdoc_t *pxdoc, int year, int month, int day);
 PXLIB_API pxval_t* PXLIB_CALL
 PX_make_timestamp(pxdoc_t *pxdoc, int year, int month, int day, int hour, int minute, int second);
 
-PXLIB_API char * PXLIB_CALL
-PX_timestamp2string(pxdoc_t *pxdoc, double value, const char *format);
+PXLIB_API std::string PXLIB_CALL
+PX_c_str2string(pxdoc_t* pxdoc, char* cP, bool nullifyCP);
+
+PXLIB_API struct tm PXLIB_CALL
+PX_timestamp2tm(pxdoc_t* pxdoc, double value);
+
+PXLIB_API struct tm PXLIB_CALL
+PX_time2tm(pxdoc_t* pxdoc, int value);
+
+PXLIB_API struct tm PXLIB_CALL
+PX_date2tm(pxdoc_t* pxdoc, int value);
+
+PXLIB_API struct tm PXLIB_CALL
+PX_dayssecs2tm(pxdoc_t* pxdoc, int days, int secs);
+
+PXLIB_API char* PXLIB_CALL
+PX_tm2string(pxdoc_t* pxdoc, struct tm value, const char* format = pxDateTimeFormat);
 
 PXLIB_API char * PXLIB_CALL
-PX_time2string(pxdoc_t *pxdoc, long value, const char *format);
+PX_timestamp2string(pxdoc_t *pxdoc, double value, const char *format = pxDateTimeFormat);
 
 PXLIB_API char * PXLIB_CALL
-PX_date2string(pxdoc_t *pxdoc, long value, const char *format);
+PX_time2string(pxdoc_t *pxdoc, long value, const char *format = pxTimeOnlyFormat);
+
+PXLIB_API char * PXLIB_CALL
+PX_date2string(pxdoc_t *pxdoc, long value, const char *format = pxDateOnlyFormat);
 
 PXLIB_API char * PXLIB_CALL
 PX_strdup(pxdoc_t *pxdoc, const char *str);
+
+PXLIB_API std::string PXLIB_CALL
+PX_timestamp2stdstring(pxdoc_t* pxdoc, double value, const char* format = pxDateTimeFormat);
+
+PXLIB_API std::string PXLIB_CALL
+PX_time2stdstring(pxdoc_t* pxdoc, long value, const char* format = pxTimeOnlyFormat);
+
+PXLIB_API std::string PXLIB_CALL
+PX_date2stdstring(pxdoc_t* pxdoc, long value, const char* format = pxDateOnlyFormat);
+
+PXLIB_API void PXLIB_CALL
+PX_extractDateTimeElements(std::string str, int& year, int& month, int& day, int& hour, int& minute, int& second, const char* format = NULL);
+
+PXLIB_API long PXLIB_CALL
+PX_stdstring2date(std::string str, const char* format = pxDateOnlyFormat);
+
+PXLIB_API long PXLIB_CALL
+PX_stdstring2time(std::string str, const char* format = pxTimeOnlyFormat);
+
+PXLIB_API double PXLIB_CALL
+PX_stdstring2timestamp(std::string str, const char* format = pxDateTimeFormat);
+
 
 #endif
 

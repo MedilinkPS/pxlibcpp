@@ -23,7 +23,7 @@ pxstream_t *px_stream_new(pxdoc_t *pxdoc) {
 		return NULL;
 	}
 
-	if(NULL == (pxs = pxdoc->malloc(pxdoc, sizeof(pxstream_t), _("Allocate memory for io stream.")))) {
+	if(NULL == (pxs = (pxstream_t*)pxdoc->malloc(pxdoc, sizeof(pxstream_t), _("Allocate memory for io stream.")))) {
 		px_error(pxdoc, PX_MemoryError, _("Could not allocate memory for io stream."));
 		return NULL;
 	}
@@ -87,7 +87,7 @@ pxstream_t *px_stream_new_file(pxdoc_t *pxdoc, int mode, int close, FILE *fp) {
  * It calls the read function from px_stream_t to actually get the
  * file data.
  */
-ssize_t px_read(pxdoc_t *p, pxstream_t *dummy, size_t len, void *buffer) {
+size_t px_read(pxdoc_t *p, pxstream_t *dummy, size_t len, void *buffer) {
 	size_t ret;
 	long blocknr, blockpos, curpos, blocksize;
 	pxhead_t *pxh;
@@ -108,7 +108,7 @@ ssize_t px_read(pxdoc_t *p, pxstream_t *dummy, size_t len, void *buffer) {
 		}
 		if(p->curblock == NULL) {
 //			fprintf(stderr, "Allocate memory for cache block.\n");
-			p->curblock = p->malloc(p, blocksize, _("Allocate memory for block cache."));
+			p->curblock = (unsigned char*)p->malloc(p, blocksize, _("Allocate memory for block cache."));
 			if(p->curblock == NULL) {
 				return(0);
 			}
@@ -136,7 +136,7 @@ ssize_t px_read(pxdoc_t *p, pxstream_t *dummy, size_t len, void *buffer) {
 //			fprintf(stderr, "block %d already in cache.\n", blocknr);
 		}
 		memcpy(buffer, p->curblock+blockpos, len);
-		pxs->seek(p, pxs, curpos + (long)len, SEEK_SET);
+		pxs->seek(p, pxs, curpos+len, SEEK_SET);
 		ret = len;
 	} else {
 		ret = pxs->read(p, pxs, len, buffer);
@@ -161,7 +161,7 @@ long px_tell(pxdoc_t *p, pxstream_t *dummy) {
 
 /* px_write() {{{
  */
-ssize_t px_write(pxdoc_t *p, pxstream_t *dummy, size_t len, void *buffer) {
+size_t px_write(pxdoc_t *p, pxstream_t *dummy, size_t len, void *buffer) {
 	size_t ret;
 	long blocknr, blockpos, curpos, blocksize;
 	pxhead_t *pxh;
@@ -181,7 +181,7 @@ ssize_t px_write(pxdoc_t *p, pxstream_t *dummy, size_t len, void *buffer) {
 		}
 		if(p->curblock == NULL) {
 //			fprintf(stderr, "Allocate memory for cache block.\n");
-			p->curblock = p->malloc(p, blocksize, _("Allocate memory for block cache."));
+			p->curblock = (unsigned char*)p->malloc(p, blocksize, _("Allocate memory for block cache."));
 			if(p->curblock == NULL) {
 				return(0);
 			}
@@ -215,7 +215,7 @@ ssize_t px_write(pxdoc_t *p, pxstream_t *dummy, size_t len, void *buffer) {
 		p->curblocknr = blocknr;
 		p->curblockdirty = px_true;
 		memcpy(p->curblock+blockpos, buffer, len);
-		pxs->seek(p, pxs, curpos + (long)len, SEEK_SET);
+		pxs->seek(p, pxs, curpos+len, SEEK_SET);
 		ret = len;
 	} else {
 		ret = pxs->write(p, pxs, len, buffer);
@@ -258,7 +258,7 @@ int px_flush(pxdoc_t *p, pxstream_t *dummy) {
  * file data.
  */
 #define BLOCKSIZEEXP 8 /* Each encrypted block has 2^BLOCKSIZEEXP bytes */
-ssize_t px_mb_read(pxblob_t *p, pxstream_t *dummy, size_t len, void *buffer) {
+size_t px_mb_read(pxblob_t *p, pxstream_t *dummy, size_t len, void *buffer) {
 	pxdoc_t *pxdoc;
 	pxhead_t *pxh;
 	pxstream_t *pxs;
@@ -288,7 +288,7 @@ ssize_t px_mb_read(pxblob_t *p, pxstream_t *dummy, size_t len, void *buffer) {
 	 * e.g. if we want to read 20 bytes starting at position 300 in the
 	 * file, we will need to read 44+20 bytes starting at position 256. 
 	 */
-	blockslen = (unsigned)len + pos - blockoffset;
+	blockslen = len + pos - blockoffset;
 	/* Check if the end of the data is within a 2^BLOCKSIZEEXP bytes block.
 	 * If that is the case, we will need to read the remainder of the
 	 * 2^BLOCKSIZEEXP bytes block as well. In the above example, we
@@ -312,7 +312,7 @@ ssize_t px_mb_read(pxblob_t *p, pxstream_t *dummy, size_t len, void *buffer) {
 		if(blockoffset == p->blockcache.start && blockslen <= p->blockcache.size) {
 //			fprintf(stderr, "Reading block at position 0x%X from cache.\n", blockoffset);
 			memcpy(buffer, p->blockcache.data + (pos - blockoffset), len);
-			ret = pxs->seek(pxdoc, pxs, pos + (long)len, SEEK_SET);
+			ret = pxs->seek(pxdoc, pxs, pos + len, SEEK_SET);
 			if (ret < 0) {
 				return ret;
 			}
@@ -326,7 +326,7 @@ ssize_t px_mb_read(pxblob_t *p, pxstream_t *dummy, size_t len, void *buffer) {
 //	fprintf(stderr, "Reading block at position 0x%X from file.\n", blockoffset);
 	tmpbuf = p->blockcache.data;
 
-	ret = (int)pxs->read(pxdoc, pxs, blockslen, tmpbuf);
+	ret = pxs->read(pxdoc, pxs, blockslen, tmpbuf);
 	if (ret <= 0) {
 		free(tmpbuf);
 		p->blockcache.data = NULL;
@@ -338,7 +338,7 @@ ssize_t px_mb_read(pxblob_t *p, pxstream_t *dummy, size_t len, void *buffer) {
 	p->blockcache.size = blockslen;
 //	free(tmpbuf);
 
-	ret = pxs->seek(pxdoc, pxs, pos + (long)len, SEEK_SET);
+	ret = pxs->seek(pxdoc, pxs, pos + len, SEEK_SET);
 	if (ret < 0) {
 		return ret;
 	}
@@ -364,7 +364,7 @@ long px_mb_tell(pxblob_t *p, pxstream_t *dummy) {
 
 /* px_mb_write() {{{
  */
-ssize_t px_mb_write(pxblob_t *p, pxstream_t *dummy, size_t len, void *buffer) {
+size_t px_mb_write(pxblob_t *p, pxstream_t *dummy, size_t len, void *buffer) {
 	return(p->mb_stream->write(p->pxdoc, p->mb_stream, len, buffer));
 }
 /* }}} */
@@ -372,7 +372,7 @@ ssize_t px_mb_write(pxblob_t *p, pxstream_t *dummy, size_t len, void *buffer) {
 /* regular file pointer */
 /* px_fread() {{{
  */
-ssize_t px_fread(pxdoc_t *p, pxstream_t *stream, size_t len, void *buffer) {
+size_t px_fread(pxdoc_t *p, pxstream_t *stream, size_t len, void *buffer) {
 	return(fread(buffer, 1, len, stream->s.fp));
 }
 /* }}} */
@@ -393,7 +393,7 @@ long px_ftell(pxdoc_t *p, pxstream_t *stream) {
 
 /* px_fwrite() {{{
  */
-ssize_t px_fwrite(pxdoc_t *p, pxstream_t *stream, size_t len, void *buffer) {
+size_t px_fwrite(pxdoc_t *p, pxstream_t *stream, size_t len, void *buffer) {
 	return(fwrite(buffer, 1, len, stream->s.fp));
 }
 /* }}} */
@@ -402,7 +402,7 @@ ssize_t px_fwrite(pxdoc_t *p, pxstream_t *stream, size_t len, void *buffer) {
 #if HAVE_GSF
 /* px_gsfread() {{{
  */
-ssize_t px_gsfread(pxdoc_t *p, pxstream_t *stream, size_t len, void *buffer) {
+size_t px_gsfread(pxdoc_t *p, pxstream_t *stream, size_t len, void *buffer) {
 	return((int) gsf_input_read(stream->s.gsfin, len, buffer));
 }
 /* }}} */
@@ -430,7 +430,7 @@ long px_gsftell(pxdoc_t *p, pxstream_t *stream) {
 
 /* px_gsfwrite() {{{
  */
-ssize_t px_gsfwrite(pxdoc_t *p, pxstream_t *stream, size_t len, void *buffer) {
+size_t px_gsfwrite(pxdoc_t *p, pxstream_t *stream, size_t len, void *buffer) {
 	return(gsf_output_write(stream->s.gsfout, len, buffer));
 }
 /* }}} */

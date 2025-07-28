@@ -1,7 +1,7 @@
 #ifndef __PARADOX_GSF_H__
 #define __PARADOX_GSF_H__
 
-#define PX_HAVE_GSF @HAVE_GSF@
+#define PX_HAVE_GSF 
 #if HAVE_GSF
 #include <gsf/gsf-input-stdio.h>
 #include <gsf/gsf-input-memory.h>

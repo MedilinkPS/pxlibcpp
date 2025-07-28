@@ -26,14 +26,14 @@
 #include <string.h>
 #include <errno.h>
 #include <math.h>
-#if defined(WIN32) || defined(OS2)
+#if defined(_WIN32) || defined(OS2)
 #include <fcntl.h>
 #endif
 #include <time.h>
 
-#ifdef WIN32
-#include <Windows.h>
-#include <Winbase.h>
+#ifdef _WIN32
+#include <windows.h>
+#include <winbase.h>
 #endif
 
 #include "pxversion.h"
@@ -47,7 +47,7 @@
 #include "px_encode.h"
 #include "px_crypt.h"
 
-#ifndef WIN32
+#ifndef _WIN32
 #define max(a,b) ((a)>(b) ? (a) : (b))
 #define min(a,b) ((a)<(b) ? (a) : (b))
 #endif
@@ -122,7 +122,7 @@ PX_get_builddate(void) {
 #ifdef PXLIB_BUILD_DATE
 	return(PXLIB_BUILD_DATE);
 #else
-	return("");
+	return((char*)"");
 #endif
 }
 /* }}} */
@@ -156,9 +156,9 @@ PX_shutdown(void) {
  */
 PXLIB_API pxdoc_t* PXLIB_CALL
 PX_new3(void  (*errorhandler)(pxdoc_t *p, int type, const char *msg, void *data),
-        void* (*allocproc)(pxdoc_t *p, size_t size, const char *caller),
-        void* (*reallocproc)(pxdoc_t *p, void *mem, size_t size, const char *caller),
-        void  (*freeproc)(pxdoc_t *p, void *mem),
+		void* (*allocproc)(pxdoc_t *p, size_t size, const char *caller),
+		void* (*reallocproc)(pxdoc_t *p, void *mem, size_t size, const char *caller),
+		void  (*freeproc)(pxdoc_t *p, void *mem),
 		void* errorhandler_user_data) {
 	pxdoc_t *pxdoc;
 
@@ -210,9 +210,9 @@ PX_new3(void  (*errorhandler)(pxdoc_t *p, int type, const char *msg, void *data)
  */
 PXLIB_API pxdoc_t* PXLIB_CALL
 PX_new2(void  (*errorhandler)(pxdoc_t *p, int type, const char *msg, void *data),
-        void* (*allocproc)(pxdoc_t *p, size_t size, const char *caller),
-        void* (*reallocproc)(pxdoc_t *p, void *mem, size_t size, const char *caller),
-        void  (*freeproc)(pxdoc_t *p, void *mem)) {
+		void* (*allocproc)(pxdoc_t *p, size_t size, const char *caller),
+		void* (*reallocproc)(pxdoc_t *p, void *mem, size_t size, const char *caller),
+		void  (*freeproc)(pxdoc_t *p, void *mem)) {
 	return(PX_new3(errorhandler, allocproc, reallocproc, freeproc, NULL));
 }
 /* }}} */
@@ -246,10 +246,10 @@ PX_get_opaque(pxdoc_t *pxdoc) {
  */
 PXLIB_API int PXLIB_CALL
 PX_set_io_stream(pxdoc_t *pxdoc,
-                 ssize_t (*readproc)(pxdoc_t *p, pxstream_t *stream, size_t numbytes, void *buffer),
-                 ssize_t (*writeproc)(pxdoc_t *p, pxstream_t *stream, size_t len, void *data),
-                 int (*seekproc)(pxdoc_t *p, pxstream_t *stream, long offset, int whence),
-                 long (*tellproc)(pxdoc_t *p, pxstream_t *stream)
+				 size_t (*readproc)(pxdoc_t *p, pxstream_t *stream, size_t numbytes, void *buffer),
+				 size_t (*writeproc)(pxdoc_t *p, pxstream_t *stream, size_t len, void *data),
+				 int (*seekproc)(pxdoc_t *p, pxstream_t *stream, long offset, int whence),
+				 long (*tellproc)(pxdoc_t *p, pxstream_t *stream)
 				 ) {
 	pxstream_t *pxs;
 
@@ -262,7 +262,7 @@ PX_set_io_stream(pxdoc_t *pxdoc,
 		px_error(pxdoc, PX_MemoryError, _("Could not create new io stream."));
 		return -1;
 	}
-	
+
 	pxs->read = readproc;
 	pxs->seek = seekproc;
 	pxs->tell = tellproc;
@@ -281,8 +281,7 @@ static int build_primary_index(pxdoc_t *pxdoc) {
 	pxhead_t *pxh;
 	pxstream_t *pxs;
 	pxpindex_t *pindex;
-	int blocknumber, numrecords;
-	unsigned blockcount;
+	int blockcount, blocknumber, numrecords;
 
 	pxh = pxdoc->px_head;
 	pxs = pxdoc->px_stream;
@@ -300,7 +299,7 @@ static int build_primary_index(pxdoc_t *pxdoc) {
 	}
 	/* Allocate memory for internal list of index entries */
 //	fprintf(stderr, "fileblocks = %d\n", pxh->px_fileblocks);
-	if(NULL == (pindex = pxdoc->malloc(pxdoc, pxh->px_fileblocks*sizeof(pxpindex_t), _("Allocate memory for self build internal primary index.")))) {
+	if(NULL == (pindex = (pxpindex_t*)pxdoc->malloc(pxdoc, pxh->px_fileblocks*sizeof(pxpindex_t), _("Allocate memory for self build internal primary index.")))) {
 		px_error(pxdoc, PX_MemoryError, _("Could not allocate memory for self build internal index."));
 		return -1;
 	}
@@ -609,7 +608,7 @@ PX_create_fp(pxdoc_t *pxdoc, pxfield_t *fields, int numfields, FILE *fp, int typ
 	for(i=0; i<pxh->px_numfields; i++, pxf++) {
 		recordsize += pxf->px_flen;
 		if(pxf->px_fname)
-			approxheadersize += (int)strlen(pxf->px_fname) + 1;
+			approxheadersize += strlen(pxf->px_fname) + 1;
 	}
 	if(type == pxfFileTypPrimIndex ||
 	   type == pxfFileTypSecIndex ||
@@ -797,7 +796,7 @@ PX_get_value(pxdoc_t *pxdoc, const char *name, float *value) {
 		*value = (float) (pxdoc->px_head->px_maxtablesize*0x400-sizeof(TDataBlock)) / pxdoc->px_head->px_recordsize;
 		return(0);
 	} else if(strcmp(name, "fileversion") == 0) {
-		*value = (float) pxdoc->px_head->px_fileversion/10.0f;
+		*value = (float) pxdoc->px_head->px_fileversion/10.0;
 		return(0);
 	} else if(strcmp(name, "headersize") == 0) {
 		*value = (float) pxdoc->px_head->px_headersize;
@@ -886,7 +885,7 @@ PX_set_parameter(pxdoc_t *pxdoc, const char *name, const char *value) {
 		px_error(pxdoc, PX_RuntimeError, _("Library has not been compiled with support for reencoding."));
 #endif
 		if(sscanf(value, "CP%d", &codepage)) {
-			PX_set_value(pxdoc, "codepage", (float)codepage);
+			PX_set_value(pxdoc, "codepage", codepage);
 		}
 	} else if(strcmp(name, "inputencoding") == 0) {
 #if PX_USE_RECODE || PX_USE_ICONV
@@ -907,7 +906,7 @@ PX_set_parameter(pxdoc_t *pxdoc, const char *name, const char *value) {
 			pxdoc->warnings = px_true;
 		} else {
 			pxdoc->warnings = px_false;
-	    }
+		}
 	}
 	return 0;
 }
@@ -1094,7 +1093,7 @@ PX_read_primary_index(pxdoc_t *pindex) {
 		if(PX_get_record2(pindex, j, data, &isdeleted, &pxdbinfo)) {
 			short int value;
 			/* Copy the data part for later sorting */
-			pindex_data[j].data = pindex->malloc(pindex, datalen, _("Allocate memory for data part of index record."));
+			pindex_data[j].data = (char*)pindex->malloc(pindex, datalen, _("Allocate memory for data part of index record."));
 			memcpy(pindex_data[j].data, data, datalen);
 			/* Get the index data */
 			PX_get_data_short(pindex, &data[datalen], 2, &value);
@@ -1193,7 +1192,7 @@ PX_write_primary_index(pxdoc_t *pxdoc, pxdoc_t *pxindex) {
 			return -1;
 		}
 	}
-	indexdata = pxdoc->px_indexdata;
+	indexdata = (pxpindex_t*)pxdoc->px_indexdata;
 	indexdatalen = pxdoc->px_indexdatalen;
 
 	/* set default values for indexRoot and numIndexLevels */
@@ -1269,7 +1268,7 @@ px_get_record_pos_with_index(pxdoc_t *pxdoc, int recno, int *deleted, pxdatabloc
 //	pindexdoc = pxdoc->px_pindex;
 //	pxih = pindexdoc->px_head;
 //	pindex_data = pindexdoc->px_data;
-	pindex_data = pxdoc->px_indexdata;
+	pindex_data = (pxpindex_t*)pxdoc->px_indexdata;
 
 	if(!pindex_data) {
 		px_error(pxdoc, PX_RuntimeError, _("Cannot search for free slot in block without an index."));
@@ -1303,7 +1302,7 @@ px_get_record_pos_with_index(pxdoc_t *pxdoc, int recno, int *deleted, pxdatabloc
 				}
 
 				/* Get the info about this data block */
-				if((ret = (int)pxdoc->read(pxdoc, pxdoc->px_stream, sizeof(TDataBlock), &datablock)) < 0) {
+				if((ret = pxdoc->read(pxdoc, pxdoc->px_stream, sizeof(TDataBlock), &datablock)) < 0) {
 					px_error(pxdoc, PX_RuntimeError, _("Could not read datablock header."));
 					return 0;
 				}
@@ -1331,8 +1330,7 @@ px_get_record_pos_with_index(pxdoc_t *pxdoc, int recno, int *deleted, pxdatabloc
  */
 int
 px_get_record_pos(pxdoc_t *pxdoc, int recno, int *deleted, pxdatablockinfo_t *pxdbinfo) {
-	int found, blocknumber;
-	unsigned blockcount;
+	int found, blockcount, blocknumber;
 	TDataBlock datablock;
 	pxhead_t *pxh;
 
@@ -1432,7 +1430,7 @@ px_find_slot_with_index(pxdoc_t *pxdoc, pxdatablockinfo_t *pxdbinfo) {
 	pxpindex_t *pindex_data;
 
 	pxh = pxdoc->px_head;
-	pindex_data = pxdoc->px_indexdata;
+	pindex_data = (pxpindex_t*)pxdoc->px_indexdata;
 
 	if(!pindex_data) {
 		px_error(pxdoc, PX_RuntimeError, _("Cannot search for free slot in block without an index."));
@@ -1462,7 +1460,7 @@ px_find_slot_with_index(pxdoc_t *pxdoc, pxdatablockinfo_t *pxdbinfo) {
 				}
 
 				/* Get the info about this data block */
-				if((ret = (int)pxdoc->read(pxdoc, pxdoc->px_stream, sizeof(TDataBlock), &datablock)) < 0) {
+				if((ret = pxdoc->read(pxdoc, pxdoc->px_stream, sizeof(TDataBlock), &datablock)) < 0) {
 					px_error(pxdoc, PX_RuntimeError, _("Could not read datablock header."));
 					return -1;
 				}
@@ -1500,8 +1498,7 @@ px_find_slot_with_index(pxdoc_t *pxdoc, pxdatablockinfo_t *pxdbinfo) {
  */
 int
 px_find_slot(pxdoc_t *pxdoc, pxdatablockinfo_t *pxdbinfo) {
-	int found, blocknumber;
-	unsigned blockcount;
+	int found, blockcount, blocknumber;
 	TDataBlock datablock;
 	pxhead_t *pxh;
 
@@ -1562,7 +1559,7 @@ void
 px_list_index(pxdoc_t *pxdoc) {
 	pxpindex_t *pindex;
 	int i;
-	pindex = pxdoc->px_indexdata;
+	pindex = (pxpindex_t*)pxdoc->px_indexdata;
 	fprintf(stdout, "    | blocknr | numrecs \n");
 	fprintf(stdout, "------------------------\n");
 	for(i=0; i<pxdoc->px_indexdatalen; i++) {
@@ -1604,7 +1601,7 @@ px_find_blob_slot(pxblob_t *pxblob, int blobsize, pxmbblockinfo_t **blockinfo) {
 			 */
 			int i = 1;
 			while((pxblob->blocklist[blockcount+i].type == 4) &&
-			      ((blockcount+i) < pxblob->blocklistlen) && 
+				  ((blockcount+i) < pxblob->blocklistlen) &&
 				  (i < numblocks)) {
 				i++;
 			}
@@ -1663,7 +1660,7 @@ px_convert_data(pxdoc_t *pxdoc, pxval_t **dataptr) {
 
 	pxh = pxdoc->px_head;
 
-	if(NULL == (data = pxdoc->malloc(pxdoc, pxh->px_recordsize, _("Allocate memory for data record.")))) {
+	if(NULL == (data = (char*)pxdoc->malloc(pxdoc, pxh->px_recordsize, _("Allocate memory for data record.")))) {
 		return NULL;
 	}
 	/* Initialize to 0, so null values are the default */
@@ -1728,7 +1725,7 @@ px_convert_data(pxdoc_t *pxdoc, pxval_t **dataptr) {
 					PX_put_data_bytes(pxdoc, &data[offset], min(pxf->px_flen, dataptr[i]->value.str.len), dataptr[i]->value.str.val);
 					break;
 				case pxfBCD:
-					PX_put_data_bcd(pxdoc, &data[offset], pxf->px_flen, dataptr[i]->value.str.val);
+					PX_put_data_bcd(pxdoc, &data[offset], pxf->px_fdc, dataptr[i]->value.str.val);
 					break;
 			}
 		}
@@ -1804,7 +1801,7 @@ PX_get_record2(pxdoc_t *pxdoc, int recno, char *data, int *deleted, pxdatablocki
 			px_error(pxdoc, PX_RuntimeError, _("Could not fseek start of record data."));
 			return NULL;
 		}
-		if((ret = (int)pxdoc->read(pxdoc, pxdoc->px_stream, pxh->px_recordsize, data)) < 0) {
+		if((ret = pxdoc->read(pxdoc, pxdoc->px_stream, pxh->px_recordsize, data)) < 0) {
 			px_error(pxdoc, PX_RuntimeError, _("Could not read data of record."));
 			return NULL;
 		}
@@ -1830,8 +1827,8 @@ PX_get_record2(pxdoc_t *pxdoc, int recno, char *data, int *deleted, pxdatablocki
 PXLIB_API int PXLIB_CALL
 PX_put_recordn(pxdoc_t *pxdoc, char *data, int recpos) {
 	pxhead_t *pxh;
-	unsigned itmp, datablocknr;
-	int recsperdatablock, recdatablocknr;
+	int recsperdatablock, datablocknr, recdatablocknr;
+	int itmp;
 	int update; /* Will be set by px_add_data_to_block() if an existing
 				   record is updated */
 
@@ -1894,7 +1891,7 @@ PX_put_recordn(pxdoc_t *pxdoc, char *data, int recpos) {
 		px_error(pxdoc, PX_RuntimeError, _("Inconsistency in writing record into data block. Expected record nr. %d, but got %d. %dth record. %dth data block. %d records per block."), recdatablocknr, itmp, pxh->px_numrecords+1, datablocknr, recsperdatablock);
 		return -1;
 	}
-	
+
 	if(itmp != recdatablocknr) {
 		px_error(pxdoc, PX_Warning, _("Position of record has been recalculated. Requested position was %d, new position is %d."), recpos, (datablocknr-1) * recsperdatablock + itmp);
 	}
@@ -1973,7 +1970,7 @@ PX_retrieve_record(pxdoc_t *pxdoc, int recno) {
 					int ret;
 					if(0 < (ret = PX_get_data_alpha(pxdoc, &data[offset], pxf->px_flen, &value))) {
 						dataptr[i]->value.str.val = value;
-						dataptr[i]->value.str.len = (int)strlen(value);
+						dataptr[i]->value.str.len = strlen(value);
 					} else if(ret < 0) {
 						dataptr[i]->isnull = 1;
 						px_error(pxdoc, PX_RuntimeError, _("Could not read of field of type pxfAlpha."));
@@ -2009,9 +2006,9 @@ PX_retrieve_record(pxdoc_t *pxdoc, int recno) {
 					double value;
 					if(0 < PX_get_data_double(pxdoc, &data[offset], pxf->px_flen, &value)) {
 						dataptr[i]->value.dval = value;
-					} 
+					}
 					break;
-					} 
+					}
 				case pxfLogical: {
 					char value;
 					if(0 < PX_get_data_byte(pxdoc, &data[offset], pxf->px_flen, &value)) {
@@ -2062,7 +2059,7 @@ PX_retrieve_record(pxdoc_t *pxdoc, int recno) {
 					char *value;
 					if(0 < PX_get_data_bcd(pxdoc, (unsigned char*) &data[offset], pxf->px_fdc, &value)) {
 						dataptr[i]->value.str.val = value;
-						dataptr[i]->value.str.len = (int)strlen(value);
+						dataptr[i]->value.str.len = strlen(value);
 					} else {
 						dataptr[i]->isnull = 1;
 					}
@@ -2157,7 +2154,7 @@ PX_insert_record(pxdoc_t *pxdoc, pxval_t **dataptr) {
 		recno = 0;
 		/* Rebuild the index */
 		/* Allocate memory for internal list of index entries */
-		if(NULL == (pindex = pxdoc->malloc(pxdoc, pxh->px_fileblocks*sizeof(pxpindex_t), _("Allocate memory for self build internal primary index.")))) {
+		if(NULL == (pindex = (pxpindex_t*)pxdoc->malloc(pxdoc, pxh->px_fileblocks*sizeof(pxpindex_t), _("Allocate memory for self build internal primary index.")))) {
 			px_error(pxdoc, PX_MemoryError, _("Could not allocate memory for self build internal index."));
 			return -1;
 		}
@@ -2178,7 +2175,7 @@ PX_insert_record(pxdoc_t *pxdoc, pxval_t **dataptr) {
 		newrecpos = pxh->px_numrecords;
 	} else {
 		pxpindex_t *pindex;
-		pindex = pxdoc->px_indexdata;
+		pindex = (pxpindex_t*)pxdoc->px_indexdata;
 		datablocknr = tmppxdbinfo.number;
 		pindex[datablocknr-1].numrecords++;
 		recno = tmppxdbinfo.recno;
@@ -2205,7 +2202,7 @@ PX_insert_record(pxdoc_t *pxdoc, pxval_t **dataptr) {
 		px_error(pxdoc, PX_RuntimeError, _("Error in writing record into data block."));
 		return -1;
 	}
-	
+
 	pxh->px_numrecords++;
 	put_px_head(pxdoc, pxh, pxdoc->px_stream);
 	return(newrecpos);
@@ -2246,7 +2243,7 @@ int px_delete_blobs(pxdoc_t *pxdoc, int recordpos) {
 				hsize =9;
 
 			if(NULL == recorddata) {
-				if(NULL == (recorddata = pxdoc->malloc(pxdoc, pxh->px_recordsize, _("Allocate memory for temporary record data.")))) {
+				if(NULL == (recorddata = (char*)pxdoc->malloc(pxdoc, pxh->px_recordsize, _("Allocate memory for temporary record data.")))) {
 					px_error(pxdoc, PX_RuntimeError, _("Could not allocate memory for temporary record data.."));
 					return -1;
 				}
@@ -2290,7 +2287,7 @@ int px_delete_blobs(pxdoc_t *pxdoc, int recordpos) {
 			/* First check if the blob data is included in the record itself */
 			if(blobsize <= leader) {
 				continue;
-			} 
+			}
 
 			/* Since the blob data is not in the record we will need a blob file */
 			if(!pxblob || !pxblob->mb_stream) {
@@ -2439,7 +2436,7 @@ PX_delete_record(pxdoc_t *pxdoc, int recno) {
 
 			/* Update the primary index */
 			if(pxdoc->px_indexdata) {
-				pxpindex_t *pindex = pxdoc->px_indexdata;
+				pxpindex_t *pindex = (pxpindex_t*)pxdoc->px_indexdata;
 				pindex[datablocknr-1].numrecords = ret;
 			}
 
@@ -2481,7 +2478,7 @@ PX_pack(pxdoc_t *pxdoc) {
 	}
 	pxh = pxdoc->px_head;
 	pxs = pxdoc->px_stream;
-	pindex_data = pxdoc->px_indexdata;
+	pindex_data = (pxpindex_t*)pxdoc->px_indexdata;
 	recsperblock = (pxh->px_maxtablesize*0x400-sizeof(TDataBlock)) / pxh->px_recordsize;
 
 	jout = 0;
@@ -2490,6 +2487,7 @@ PX_pack(pxdoc_t *pxdoc) {
 	blockoutpos = pxh->px_headersize + (blockoutnumber-1)*pxh->px_maxtablesize*0x400;
 	for(j=0; j<pxdoc->px_indexdatalen; j++) {
 		if(pindex_data[j].level == 1) {
+			int n;
 			blocknumber = pindex_data[j].blocknumber;
 			blockpos = pxh->px_headersize + (blocknumber-1)*pxh->px_maxtablesize*0x400;
 			n = pindex_data[j].numrecords;
@@ -2780,7 +2778,7 @@ PX_set_targetencoding(pxdoc_t *pxdoc, const char *encoding) {
 	return -2;
 #endif
 	if(sscanf(encoding, "CP%d", &codepage)) {
-		PX_set_value(pxdoc, "codepage", (float)codepage);
+		PX_set_value(pxdoc, "codepage", codepage);
 	}
 	return 0;
 }
@@ -2884,8 +2882,8 @@ static int build_mb_block_list(pxblob_t *pxblob) {
 		return -1;
 	}
 
-	numblocks = (int)filesize >> 12;
-	if(NULL == (blocklist = pxdoc->malloc(pxdoc, numblocks*sizeof(pxmbblockinfo_t), _("Allocate memory for block info in blob file.")))) {
+	numblocks = filesize >> 12;
+	if(NULL == (blocklist = (pxmbblockinfo_t*)pxdoc->malloc(pxdoc, numblocks*sizeof(pxmbblockinfo_t), _("Allocate memory for block info in blob file.")))) {
 		return -1;
 	}
 	i = 0;
@@ -2946,7 +2944,7 @@ PXLIB_API pxblob_t* PXLIB_CALL
 PX_new_blob(pxdoc_t *pxdoc) {
 	pxblob_t *pxblob;
 
-	if(NULL == (pxblob = pxdoc->malloc(pxdoc, sizeof(pxblob_t), _("Allocate memory for blob.")))) {
+	if(NULL == (pxblob = (pxblob_t*)pxdoc->malloc(pxdoc, sizeof(pxblob_t), _("Allocate memory for blob.")))) {
 		px_error(pxdoc, PX_RuntimeError, _("Could not allocate memory for blob."));
 		return(NULL);
 	}
@@ -3047,7 +3045,7 @@ PX_create_blob_fp(pxblob_t *pxblob, FILE *fp) {
 	pxblob->tell = px_mb_tell;
 	pxblob->write = px_mb_write;
 
-	if(NULL == (mbh = pxdoc->malloc(pxdoc, sizeof(mbhead_t), _("Allocate memory for header of blob file.")))) {
+	if(NULL == (mbh = (mbhead_t*)pxdoc->malloc(pxdoc, sizeof(mbhead_t), _("Allocate memory for header of blob file.")))) {
 		px_error(pxdoc, PX_MemoryError, _("Could not allocate memory for header of blob file."));
 		return -1;
 	}
@@ -3259,12 +3257,11 @@ _px_read_blobdata(pxblob_t *pxblob, const char *data, int len, int hsize, int *m
 
 	size = get_long_le(&data[leader+4]);
 	if(hsize == 17)
-		*blobsize = (int)size - 8;
+		*blobsize = size - 8;
 	else
-		*blobsize = (int)size;
+		*blobsize = size;
 	index = get_long_le(&data[leader]) & 0x000000ff;
-	mod_nr = get_short_le(&data[leader+8]);
-	*mod = (int)mod_nr;
+	*mod = mod_nr = get_short_le(&data[leader+8]);
 /*	fprintf(stderr, "index=%ld ", index); */
 /*	fprintf(stderr, "size=%ld ", size); */
 /*	fprintf(stderr, "mod_nr=%d \n", mod_nr); */
@@ -3280,7 +3277,7 @@ _px_read_blobdata(pxblob_t *pxblob, const char *data, int len, int hsize, int *m
 	}
 
 	if(*blobsize <= leader) {
-		if(NULL == (blobdata = pxdoc->malloc(pxblob->pxdoc, *blobsize, _("Allocate memory for blob.")))) {
+		if(NULL == (blobdata = (char*)pxdoc->malloc(pxblob->pxdoc, *blobsize, _("Allocate memory for blob.")))) {
 			px_error(pxdoc, PX_MemoryError, _("Could not allocate memory for blob."));
 			return(NULL);
 		}
@@ -3293,13 +3290,13 @@ _px_read_blobdata(pxblob_t *pxblob, const char *data, int len, int hsize, int *m
 		}
 //		fprintf(stderr, "offset=%ld ", offset);
 
-		if((ret = pxblob->seek(pxblob, pxblob->mb_stream, (long)offset, SEEK_SET)) < 0) {
+		if((ret = pxblob->seek(pxblob, pxblob->mb_stream, offset, SEEK_SET)) < 0) {
 			px_error(pxdoc, PX_RuntimeError, _("Could not fseek start of blob."));
 			return NULL;
 		}
 
 		/* Just read the first 3 Bytes because they are common for all block */
-		if((ret = (int)pxblob->read(pxblob, pxblob->mb_stream, 3, head)) < 0) {
+		if((ret = pxblob->read(pxblob, pxblob->mb_stream, 3, head)) < 0) {
 			px_error(pxdoc, PX_RuntimeError, _("Could not read head of blob data."));
 			return NULL;
 		}
@@ -3318,7 +3315,7 @@ _px_read_blobdata(pxblob_t *pxblob, const char *data, int len, int hsize, int *m
 				return NULL;
 			}
 			/* Read the remaining 6/14 bytes from the header */
-			if((ret = (int)pxblob->read(pxblob, pxblob->mb_stream, hsize-3, head)) < 0) {
+			if((ret = pxblob->read(pxblob, pxblob->mb_stream, hsize-3, head)) < 0) {
 				px_error(pxdoc, PX_RuntimeError, _("Could not read remaining head of single data block."));
 				return NULL;
 			}
@@ -3330,28 +3327,28 @@ _px_read_blobdata(pxblob_t *pxblob, const char *data, int len, int hsize, int *m
 			 * was passed to PX_read_blobdata()
 			 */
 
-			if(NULL == (blobdata = pxdoc->malloc(pxblob->pxdoc, *blobsize, _("Allocate memory for blob.")))) {
+			if(NULL == (blobdata = (char*)pxdoc->malloc(pxblob->pxdoc, *blobsize, _("Allocate memory for blob.")))) {
 				px_error(pxdoc, PX_MemoryError, _("Could not allocate memory for blob."));
 				return(NULL);
 			}
 
-			if((ret = (int)pxblob->read(pxblob, pxblob->mb_stream, *blobsize, blobdata)) < 0) {
+			if((ret = pxblob->read(pxblob, pxblob->mb_stream, *blobsize, blobdata)) < 0) {
 				px_error(pxdoc, PX_RuntimeError, _("Could not read all blob data."));
 				return NULL;
 			}
 		} else if(head[0] == 3) { /* Reading data from a block type 3 */
 			/* Read the remaining 9 bytes from the header */
-			if((ret = (int)pxblob->read(pxblob, pxblob->mb_stream, 9, head)) < 0) {
+			if((ret = pxblob->read(pxblob, pxblob->mb_stream, 9, head)) < 0) {
 				px_error(pxdoc, PX_RuntimeError, _("Could not read remaining head of suballocated block."));
 				return NULL;
 			}
 			/* Goto the blob pointer with the passed index */
-			if((ret = pxblob->seek(pxblob, pxblob->mb_stream, (long)offset+12+(long)index*5, SEEK_SET)) < 0) {
+			if((ret = pxblob->seek(pxblob, pxblob->mb_stream, offset+12+index*5, SEEK_SET)) < 0) {
 				px_error(pxdoc, PX_RuntimeError, _("Could not fseek blob pointer."));
 				return NULL;
 			}
 			/* Read the blob pointer */
-			if((ret = (int)pxblob->read(pxblob, pxblob->mb_stream, 5, head)) < 0) {
+			if((ret = pxblob->read(pxblob, pxblob->mb_stream, 5, head)) < 0) {
 				px_error(pxdoc, PX_RuntimeError, _("Could not read blob pointer."));
 				return NULL;
 			}
@@ -3359,16 +3356,16 @@ _px_read_blobdata(pxblob_t *pxblob, const char *data, int len, int hsize, int *m
 				px_error(pxdoc, PX_RuntimeError, _("Blob does not have expected size (%d != %d)."), size, ((int)head[1]-1)*16+head[4]);
 				return(NULL);
 			}
-			if(NULL == (blobdata = pxdoc->malloc(pxblob->pxdoc, size, _("Allocate memory for blob.")))) {
+			if(NULL == (blobdata = (char*)pxdoc->malloc(pxblob->pxdoc, size, _("Allocate memory for blob.")))) {
 				px_error(pxdoc, PX_MemoryError, _("Could not allocate memory for blob."));
 				return(NULL);
 			}
 			/* Goto the start of the blob */
-			if((ret = pxblob->seek(pxblob, pxblob->mb_stream, (long)offset+head[0]*16, SEEK_SET)) < 0) {
+			if((ret = pxblob->seek(pxblob, pxblob->mb_stream, offset+head[0]*16, SEEK_SET)) < 0) {
 				px_error(pxdoc, PX_RuntimeError, _("Could not fseek start of blob."));
 				return NULL;
 			}
-			if((ret = (int)pxblob->read(pxblob, pxblob->mb_stream, size, blobdata)) < 0) {
+			if((ret = pxblob->read(pxblob, pxblob->mb_stream, size, blobdata)) < 0) {
 				px_error(pxdoc, PX_RuntimeError, _("Could not read all blob data."));
 				return NULL;
 			}
@@ -3405,6 +3402,7 @@ PXLIB_API int PXLIB_CALL
 PX_get_data_alpha(pxdoc_t *pxdoc, char *data, int len, char **value) {
 	char *buffer, *obuf = NULL;
 	size_t olen;
+	int res;
 
 	if(data[0] == '\0') {
 		*value = NULL;
@@ -3414,12 +3412,11 @@ PX_get_data_alpha(pxdoc_t *pxdoc, char *data, int len, char **value) {
 	if(pxdoc->targetencoding != NULL) {
 #if PX_USE_RECODE
 		int oallocated = 0;
-		recode_buffer_to_buffer(pxdoc->out_recode_request, data, len, &obuf, &olen, &oallocated);
+		res = recode_buffer_to_buffer(pxdoc->out_recode_request, data, len, &obuf, &olen, &oallocated);
 #else
 #if PX_USE_ICONV
 		size_t ilen;
 		char *iptr, *optr;
-		int res;
 		/* Worst case for length of output buffer. If conversion from 1 byte
 		 * to 2 byte chars takes place
 		 */
@@ -3586,6 +3583,7 @@ PX_get_data_bcd(pxdoc_t *pxdoc, unsigned char *data, int len, char **value) {
 	unsigned char nibble;
 	int size;
 	int lz;   /* 1 as long as leading zeros are found */
+	struct lconv *lc;
 	char *buffer;
 
 	if(data[0] == '\0') {
@@ -3624,7 +3622,7 @@ PX_get_data_bcd(pxdoc_t *pxdoc, unsigned char *data, int len, char **value) {
 	if(lz)
 		buffer[j++] = '0';
 #ifdef HAVE_LOCALE_H
-	struct lconv *lc = localeconv();
+	lc = localeconv();
 	if(lc)
 		buffer[j++] = lc->decimal_point[0];
 	else
@@ -3667,12 +3665,11 @@ _px_get_data_blob(pxdoc_t *pxdoc, const char *data, int len, int hsize, int *mod
 	 */
 	size = get_long_le(&data[leader+4]);
 	if(hsize == 17)
-		*blobsize = (int)size - 8;
+		*blobsize = size - 8;
 	else
-		*blobsize = (int)size;
+		*blobsize = size;
 	index = get_long_le(&data[leader]) & 0x000000ff;
-	mod_nr = get_short_le(&data[leader+8]);
-	*mod = (int)mod_nr;
+	*mod = mod_nr = get_short_le(&data[leader+8]);
 /*	fprintf(stderr, "index=%ld ", index); */
 /*	fprintf(stderr, "size=%ld ", size); */
 /*	fprintf(stderr, "mod_nr=%d \n", mod_nr); */
@@ -3685,7 +3682,7 @@ _px_get_data_blob(pxdoc_t *pxdoc, const char *data, int len, int hsize, int *mod
 
 	/* First check if the blob data is included in the record itself */
 	if(*blobsize <= leader) {
-		blobdata = pxdoc->malloc(pxdoc, *blobsize, _("Allocate memory for blob data."));
+		blobdata = (char*)pxdoc->malloc(pxdoc, *blobsize, _("Allocate memory for blob data."));
 		if(!blobdata) {
 			px_error(pxdoc, PX_RuntimeError, _("Could not allocate memory for blob data."));
 			*value = NULL;
@@ -3712,14 +3709,14 @@ _px_get_data_blob(pxdoc_t *pxdoc, const char *data, int len, int hsize, int *mod
 	}
 //		fprintf(stderr, "offset=%ld ", offset);
 
-	if((ret = pxblob->seek(pxblob, pxblob->mb_stream, (long)offset, SEEK_SET)) < 0) {
+	if((ret = pxblob->seek(pxblob, pxblob->mb_stream, offset, SEEK_SET)) < 0) {
 		px_error(pxdoc, PX_RuntimeError, _("Could not fseek start of blob."));
 		*value = NULL;
 		return -1;
 	}
 
 	/* Just read the first 3 Bytes because they are common for all block */
-	if((ret = (int)pxblob->read(pxblob, pxblob->mb_stream, 3, head)) < 0) {
+	if((ret = pxblob->read(pxblob, pxblob->mb_stream, 3, head)) < 0) {
 		px_error(pxdoc, PX_RuntimeError, _("Could not read head of blob data."));
 		*value = NULL;
 		return -1;
@@ -3742,7 +3739,7 @@ _px_get_data_blob(pxdoc_t *pxdoc, const char *data, int len, int hsize, int *mod
 			return -1;
 		}
 		/* Read the remaining 6 bytes from the header */
-		if((ret = (int)pxblob->read(pxblob, pxblob->mb_stream, hsize-3, head)) < 0) {
+		if((ret = pxblob->read(pxblob, pxblob->mb_stream, hsize-3, head)) < 0) {
 			px_error(pxdoc, PX_RuntimeError, _("Could not read remaining head of single data block."));
 			*value = NULL;
 			return -1;
@@ -3756,14 +3753,14 @@ _px_get_data_blob(pxdoc_t *pxdoc, const char *data, int len, int hsize, int *mod
 		 * was passed to PX_read_blobdata()
 		 */
 
-		blobdata = pxdoc->malloc(pxdoc, *blobsize, _("Allocate memory for blob data."));
+		blobdata = (char*)pxdoc->malloc(pxdoc, *blobsize, _("Allocate memory for blob data."));
 		if(!blobdata) {
 			px_error(pxdoc, PX_RuntimeError, _("Could not allocate memory for blob data."));
 			*value = NULL;
 			return -1;
 		}
 
-		if((ret = (int)pxblob->read(pxblob, pxblob->mb_stream, *blobsize, blobdata)) < 0) {
+		if((ret = pxblob->read(pxblob, pxblob->mb_stream, *blobsize, blobdata)) < 0) {
 			px_error(pxdoc, PX_RuntimeError, _("Could not read all blob data."));
 			*value = NULL;
 			pxdoc->free(pxdoc, blobdata);
@@ -3771,19 +3768,19 @@ _px_get_data_blob(pxdoc_t *pxdoc, const char *data, int len, int hsize, int *mod
 		}
 	} else if(head[0] == 3) { /* Reading data from a block type 3 */
 		/* Read the remaining 9 bytes from the header */
-		if((ret = (int)pxblob->read(pxblob, pxblob->mb_stream, 9, head)) < 0) {
+		if((ret = pxblob->read(pxblob, pxblob->mb_stream, 9, head)) < 0) {
 			px_error(pxdoc, PX_RuntimeError, _("Could not read remaining head of suballocated block."));
 			*value = NULL;
 			return -1;
 		}
 		/* Goto the blob pointer with the passed index */
-		if((ret = pxblob->seek(pxblob, pxblob->mb_stream, (long)offset+12+(long)index*5, SEEK_SET)) < 0) {
+		if((ret = pxblob->seek(pxblob, pxblob->mb_stream, offset+12+index*5, SEEK_SET)) < 0) {
 			px_error(pxdoc, PX_RuntimeError, _("Could not fseek blob pointer."));
 			*value = NULL;
 			return -1;
 		}
 		/* Read the blob pointer */
-		if((ret = (int)pxblob->read(pxblob, pxblob->mb_stream, 5, head)) < 0) {
+		if((ret = pxblob->read(pxblob, pxblob->mb_stream, 5, head)) < 0) {
 			px_error(pxdoc, PX_RuntimeError, _("Could not read blob pointer."));
 			*value = NULL;
 			return -1;
@@ -3793,20 +3790,20 @@ _px_get_data_blob(pxdoc_t *pxdoc, const char *data, int len, int hsize, int *mod
 			*value = NULL;
 			return -1;
 		}
-		blobdata = pxdoc->malloc(pxdoc, size, _("Allocate memory for blob data."));
+		blobdata = (char*)pxdoc->malloc(pxdoc, size, _("Allocate memory for blob data."));
 		if(!blobdata) {
 			px_error(pxdoc, PX_RuntimeError, _("Could not allocate memory for blob data."));
 			*value = NULL;
 			return -1;
 		}
 		/* Goto the start of the blob */
-		if((ret = pxblob->seek(pxblob, pxblob->mb_stream, (long)offset+head[0]*16, SEEK_SET)) < 0) {
+		if((ret = pxblob->seek(pxblob, pxblob->mb_stream, offset+head[0]*16, SEEK_SET)) < 0) {
 			px_error(pxdoc, PX_RuntimeError, _("Could not fseek start of blob."));
 			*value = NULL;
 			pxdoc->free(pxdoc, blobdata);
 			return -1;
 		}
-		if((ret = (int)pxblob->read(pxblob, pxblob->mb_stream, size, blobdata)) < 0) {
+		if((ret = pxblob->read(pxblob, pxblob->mb_stream, size, blobdata)) < 0) {
 			px_error(pxdoc, PX_RuntimeError, _("Could not read all blob data."));
 			*value = NULL;
 			pxdoc->free(pxdoc, blobdata);
@@ -3843,7 +3840,8 @@ PX_get_data_graphic(pxdoc_t *pxdoc, const char *data, int len, int *mod, int *bl
 PXLIB_API void PXLIB_CALL
 PX_put_data_alpha(pxdoc_t *pxdoc, char *data, int len, char *value) {
 	char *obuf = NULL;
-	size_t olen;
+	size_t olen{};
+	int res;
 
 	memset(data, 0, len);
 	if((value == NULL) || (value[0] == '\0')) {
@@ -3853,7 +3851,7 @@ PX_put_data_alpha(pxdoc_t *pxdoc, char *data, int len, char *value) {
 	if(pxdoc->targetencoding != NULL) {
 #if PX_USE_RECODE
 		int oallocated = 0;
-		int res = recode_buffer_to_buffer(pxdoc->in_recode_request, value, strlen(value), &obuf, &olen, &oallocated);
+		res = recode_buffer_to_buffer(pxdoc->in_recode_request, value, strlen(value), &obuf, &olen, &oallocated);
 #else
 #if PX_USE_ICONV
 		size_t ilen = strlen(value);
@@ -3883,10 +3881,13 @@ PX_put_data_alpha(pxdoc_t *pxdoc, char *data, int len, char *value) {
 		obuf = value;
 	}
 
-	memcpy(data, obuf, olen < (size_t) len ? olen : len);
+	if (obuf != NULL)
+	{
+		memcpy(data, obuf, olen < (size_t)len ? olen : len);
 
-	if(pxdoc->targetencoding != NULL) {
-		free(obuf);
+		if (pxdoc->targetencoding != NULL) {
+			free(obuf);
+		}
 	}
 
 }
@@ -3987,8 +3988,9 @@ PXLIB_API void PXLIB_CALL
 PX_put_data_bcd(pxdoc_t *pxdoc, char *data, int len, char *value) {
 	unsigned char obuf[17];
 	unsigned char sign;
+	struct lconv *lc;
 	char *dpptr;
-	size_t i, j;
+	int i, j;
 
 	memset(obuf, 0, 17);
 	if(NULL != value) {
@@ -3999,9 +4001,9 @@ PX_put_data_bcd(pxdoc_t *pxdoc, char *data, int len, char *value) {
 			obuf[0] = 0x40 + (unsigned char) len;
 			sign = 0x0f;
 			memset(obuf+1, 255, 16);
-		} 
+		}
 #ifdef HAVE_LOCALE_H
-		struct lconv *lc = localeconv();
+		lc = localeconv();
 		if(lc)
 			dpptr = strchr(value, lc->decimal_point[0]);
 		else
@@ -4015,7 +4017,7 @@ PX_put_data_bcd(pxdoc_t *pxdoc, char *data, int len, char *value) {
 				int index;
 				nibble = value[j]-48;
 				if((nibble >= 0) && (nibble < 10)) {
-					index = (34-len+(int)i)/2;
+					index = (34-len+i)/2;
 					if((34-len+i)%2)
 						obuf[index] = (obuf[index] & 0xf0) | (nibble^sign) ;
 					else
@@ -4034,7 +4036,7 @@ PX_put_data_bcd(pxdoc_t *pxdoc, char *data, int len, char *value) {
 			int index;
 			nibble = value[j]-48;
 			if(nibble >= 0 && nibble < 10) {
-				index = (int)i/2;
+				index = i/2;
 				if(i%2)
 					obuf[index] = (obuf[index] & 0xf0) | (nibble^sign) ;
 				else
@@ -4168,13 +4170,13 @@ _px_put_data_blob(pxdoc_t *pxdoc, const char *data, int len, char *value, int va
 					return -1;
 				}
 				if(mbbhtab.offset == 0) {
-					if(pxblob->seek(pxblob, pxs, -1*sizeof(TMbBlockHeader3Table), SEEK_CUR) < 0) {
+					if(pxblob->seek(pxblob, pxs, -((int)(sizeof(TMbBlockHeader3Table))), SEEK_CUR) < 0) {
 						px_error(pxdoc, PX_RuntimeError, _("Could not go to table entry for the blob data."));
 						return -1;
 					}
 					break;
 				}
-				if(pxblob->seek(pxblob, pxs, -2*sizeof(TMbBlockHeader3Table), SEEK_CUR) < 0) {
+				if(pxblob->seek(pxblob, pxs, -2*((int)(sizeof(TMbBlockHeader3Table))), SEEK_CUR) < 0) {
 					px_error(pxdoc, PX_RuntimeError, _("Could not go to table entry for the blob data."));
 					return -1;
 				}
@@ -4290,26 +4292,153 @@ PX_make_timestamp(pxdoc_t *pxdoc, int year, int month, int day, int hour, int mi
 }
 /* }}} */
 
+/* PX_timestamp2tm() {{{
+ * Converts a timestamp as stored in the paradox database into
+ * a tm struct.
+ */
+PXLIB_API struct tm PXLIB_CALL
+PX_timestamp2tm(pxdoc_t* pxdoc, double value)
+{
+	int secs, days;
+
+	value = value / 1000.0;
+	days = (int)(value / 86400);
+	secs = (int)fmod(value, 86400);
+	
+	return PX_dayssecs2tm(pxdoc, days, secs);
+
+}
+/* }}} */
+
+/* PX_timestamp2tm() {{{
+ * Converts a timestamp as stored in the paradox database into
+ * a tm struct.
+ */
+PXLIB_API struct tm PXLIB_CALL
+PX_time2tm(pxdoc_t* pxdoc, int value)
+{
+	return PX_dayssecs2tm(pxdoc, 0, value / 1000);
+
+}
+/* }}} */
+
+/* PX_timestamp2tm() {{{
+ * Converts a timestamp as stored in the paradox database into
+ * a tm struct.
+ */
+PXLIB_API struct tm PXLIB_CALL
+PX_date2tm(pxdoc_t* pxdoc, int value)
+{
+	return PX_dayssecs2tm(pxdoc, value, 0);
+}
+/* }}} */
+
+
+
+/* PX_timestamp2tm() {{{
+ * Converts a timestamp as stored in the paradox database into
+ * a tm struct.
+ */
+PXLIB_API struct tm PXLIB_CALL
+PX_dayssecs2tm(pxdoc_t* pxdoc, int days, int secs)
+{
+	struct tm ta {};
+
+	if (days > 0)
+	{
+		PX_SdnToGregorian(days + 1721425, &ta.tm_year, &ta.tm_mon, &ta.tm_mday);
+		ta.tm_mon--;
+	}
+	if (secs > 0)
+	{
+		ta.tm_hour = secs / 3600;
+		ta.tm_min = secs / 60 % 60;
+		ta.tm_sec = secs % 60;
+	}
+
+	return(ta);
+}
+/* }}} */
+
+
+
+
+
 #define isleap(year) ((((year) % 4) == 0 && ((year) % 100) != 0) || ((year) % 400)==0)
+
+/* PX_timestamp2string() {{{
+ * Converts a timestamp as stored in the paradox database into
+ * a string as specified by the format string.
+ */
+PXLIB_API char* PXLIB_CALL
+PX_timestamp2string(pxdoc_t* pxdoc, double value, const char* format) {
+	struct tm ta = PX_timestamp2tm(pxdoc, value);
+	return PX_tm2string(pxdoc, ta, format);
+}
+
+PXLIB_API std::string PXLIB_CALL
+PX_cstr2stdstring(pxdoc_t* pxdoc, char* cP, bool nullifyCP) {
+	std::string ret = "";
+	if (cP != NULL)
+	{
+		ret = std::string(cP);
+		if (pxdoc != NULL)
+		{
+			pxdoc->free(pxdoc, cP);
+		}
+		else
+		{
+			free(cP);
+			if (nullifyCP)
+			{
+				cP = NULL;
+			}
+		}
+	}
+	return ret;
+}
+
+PXLIB_API std::string PXLIB_CALL
+PX_timestamp2stdstring(pxdoc_t* pxdoc, double value, const char* format)
+{
+	bool nullifyCPTrue = true;
+	return PX_cstr2stdstring(pxdoc, PX_timestamp2string(pxdoc, value, format), nullifyCPTrue);
+}
+
+PXLIB_API std::string PXLIB_CALL
+PX_time2stdstring(pxdoc_t* pxdoc, long value, const char* format)
+{
+	bool nullifyCPTrue = true;
+	return PX_cstr2stdstring(pxdoc, PX_time2string(pxdoc, value, format), nullifyCPTrue);
+}
+
+
+PXLIB_API std::string PXLIB_CALL
+PX_date2stdstring(pxdoc_t* pxdoc, long value, const char* format)
+{
+	bool nullifyCPTrue = true;
+	return PX_cstr2stdstring(pxdoc, PX_date2string(pxdoc, value, format), nullifyCPTrue);
+}
+
 /* PX_timestamp2string() {{{
  * Converts a timestamp as stored in the paradox database into
  * a string as specified by the format string.
  */
 PXLIB_API char * PXLIB_CALL
-PX_timestamp2string(pxdoc_t *pxdoc, double value, const char *format) {
+PX_tm2string(pxdoc_t* pxdoc, struct tm ta, const char *format) {
 	char tmp_buff[32], *str;
 	int i, size=0;
-	struct tm ta;
-	int secs, days;
+	//struct tm ta;
+	//int secs, days;
 
-	value = value / 1000.0;
-	days = (int) (value / 86400);
-	secs = (int) fmod(value, 86400);
-	PX_SdnToGregorian(days+1721425, &ta.tm_year, &ta.tm_mon, &ta.tm_mday);
-	ta.tm_mon--;
-	ta.tm_hour = secs/3600;
-	ta.tm_min = secs/60%60;
-	ta.tm_sec = secs%60;
+	//value = value / 1000.0;
+	//days = (int) (value / 86400);
+	//secs = (int) fmod(value, 86400);
+	//PX_SdnToGregorian(days+1721425, &ta.tm_year, &ta.tm_mon, &ta.tm_mday);
+	//ta.tm_mon--;
+	//ta.tm_hour = secs/3600;
+	//ta.tm_min = secs/60%60;
+	//ta.tm_sec = secs%60;
 
 	for (i = 0; i < strlen(format); i++) {
 		switch(format[i]) {
@@ -4341,7 +4470,9 @@ PX_timestamp2string(pxdoc_t *pxdoc, double value, const char *format) {
 
 		}
 	}
-	if(NULL == (str = pxdoc->malloc(pxdoc, size+1, _("Allocate memory for timestamp string.")))) {
+
+	//	if(NULL == (str = (char*)malloc(size + 1))) {
+	if(NULL == (str = (char*)pxdoc->malloc(pxdoc, size+1, _("Allocate memory for timestamp string.")))) {
 		px_error(pxdoc, PX_MemoryError, _("Could not allocate memory for timestamp string."));
 		return NULL;
 	}
@@ -4493,3 +4624,95 @@ PX_strdup(pxdoc_t *pxdoc, const char *str) {
  * vim600: sw=4 ts=4 fdm=marker
  * vim<600: sw=4 ts=4
  */
+
+
+
+PXLIB_API void PXLIB_CALL
+PX_extractDateTimeElements(std::string str, int& year, int& month, int& day, int& hour, int& minute, int& second, const char* format)
+{
+	// TODO: actually take the format in to account - for now we assume consistent format of YYYY-MM-DDTHH:MM:SS:HHHZ or HH:MM:SS
+
+	std::string dateStr = "";
+	std::string timeStr = "";
+	if (str.length() == 8 && str[2] == ':' && str[5] == ':') // Time only
+	{
+		timeStr = str.substr(0, 8);
+	}
+	else
+	{
+		if (str.length() >= 10)
+		{
+			dateStr = str.substr(0, 10);
+		}
+		if (str.length() >= 19)
+		{
+			timeStr = str.substr(11, 8);
+		}
+	}
+
+	if (dateStr.length() >= 10)
+	{
+		// TODO: maybe split on common delimiters rather than hard sizing? (would also need to account for single digit month/day and maybe 2 digit year)
+		year = std::atoi(dateStr.substr(0, 4).c_str());
+		month = std::atoi(dateStr.substr(5, 2).c_str());
+		day = std::atoi(dateStr.substr(8, 2).c_str());
+	}
+
+	if (timeStr.length() >= 8)
+	{
+		// TODO: maybe split on common delimiters rather than hard sizing? (would also need to account for single digit hour etc).
+		hour = std::atoi(timeStr.substr(0, 2).c_str());
+		minute = std::atoi(timeStr.substr(3, 2).c_str());
+		second = std::atoi(timeStr.substr(6, 2).c_str());
+	}
+}
+
+PXLIB_API long PXLIB_CALL
+PX_stdstring2date(std::string str, const char* format)
+{
+	int year = 0;
+	int month = 0;
+	int day = 0;
+	int hour = 0;
+	int minute = 0;
+	int second = 0;
+	PX_extractDateTimeElements(str, year, month, day, hour, minute, second, format);
+	
+	long value = PX_GregorianToSdn(year, month, day);
+	value = value - 1721425;
+	return value;
+}
+
+PXLIB_API long PXLIB_CALL
+PX_stdstring2time(std::string str, const char* format)
+{
+	int year = 0;
+	int month = 0;
+	int day = 0;
+	int hour = 0;
+	int minute = 0;
+	int second = 0;
+	PX_extractDateTimeElements(str, year, month, day, hour, minute, second, format);
+
+	long value = hour * 3600000 + minute * 60000 + second * 1000;
+
+	return value;
+}
+
+PXLIB_API double PXLIB_CALL
+PX_stdstring2timestamp(std::string str, const char* format)
+{
+	int year = 0;
+	int month = 0;
+	int day = 0;
+	int hour = 0;
+	int minute = 0;
+	int second = 0;
+	PX_extractDateTimeElements(str, year, month, day, hour, minute, second, format);
+
+	double value = (double)PX_GregorianToSdn(year, month, day);
+	value = ((value - 1721425.0) * 86400.0 + hour * 3600 + minute * 60 + second) * 1000.0;
+	
+	return value;
+
+}

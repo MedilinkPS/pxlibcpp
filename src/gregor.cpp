@@ -137,10 +137,10 @@
 
 void
 SdnToGregorian(
-    long int  sdn,
-    int      *pYear,
-    int      *pMonth,
-    int      *pDay)
+	long int  sdn,
+	int      *pYear,
+	int      *pMonth,
+	int      *pDay)
 {
 	int       century;
 	int       year;
@@ -190,17 +190,17 @@ SdnToGregorian(
 
 long int
 GregorianToSdn(
-    int inputYear,
-    int inputMonth,
-    int inputDay)
+	int inputYear,
+	int inputMonth,
+	int inputDay)
 {
 	int year;
 	int month;
 	
 	/* check for invalid dates */
 	if (inputYear == 0 || inputYear < -4714 ||
-	    inputMonth <= 0 || inputMonth > 12 ||
-	    inputDay <= 0 || inputDay > 31)
+		inputMonth <= 0 || inputMonth > 12 ||
+		inputDay <= 0 || inputDay > 31)
 	{
 		return(0);
 	}
@@ -231,10 +231,10 @@ GregorianToSdn(
 	}
 	
 	return( ((year / 100) * DAYS_PER_400_YEARS) / 4
-	        + ((year % 100) * DAYS_PER_4_YEARS) / 4
-	        + (month * DAYS_PER_5_MONTHS + 2) / 5
-	        + inputDay
-	        - SDN_OFFSET );
+			+ ((year % 100) * DAYS_PER_4_YEARS) / 4
+			+ (month * DAYS_PER_5_MONTHS + 2) / 5
+			+ inputDay
+			- SDN_OFFSET );
 }
 
 /*

@@ -16,7 +16,7 @@
 
 #include "px_misc.h"
 
-#ifdef WIN32
+#ifdef _WIN32
 #define localtime_r( _clock, _result ) \
 	( *(_result) = *localtime( (_clock) ), \
 	(_result) )
@@ -324,7 +324,7 @@ void hex_dump(FILE *outfp, char *p, int len) {
 
 	for(i=0; i<len; i++) {
 		if(i%16 == 0)
-			fprintf(outfp, "\n%p: ", &p[i]);
+			fprintf(outfp, "\n%08X: ", (int) &p[i]);
 		fprintf(outfp, "%02X ", p[i]);
 	}
 	fprintf(outfp, "\n");
