@@ -58,7 +58,7 @@
     <ProjectGuid>{860ca029-b6d5-4529-86b0-494ba992b71a}</ProjectGuid>
     <RootNamespace>pxlib</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>APS.Libraries.Data.PX.Core</ProjectName>
+    <ProjectName>pxlibcpp</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
